@@ -157,7 +157,7 @@ class MjViewer(MjViewerBasic):
         self._loop_count = 0
         self._render_every_frame = False
 
-        self._show_mocap = True  # Show / hide mocap bodies.
+        self._show_mocap = False  # Show / hide mocap bodies.
         self._transparent = False  # Make everything transparent.
 
         # this variable is estamated as a running average.

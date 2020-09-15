@@ -36,7 +36,6 @@ class LightModder(BaseModder):
 
         value = list(value)
         assert len(value) == 3, "Expected 3-dim value, got %s" % value
-
         self.model.light_pos[lightid] = value
 
     def set_dir(self, name, value):
@@ -86,6 +85,46 @@ class LightModder(BaseModder):
         assert lightid > -1, "Unkwnown light %s" % name
         self.model.light_castshadow[lightid] = value
 
+    def rand_all(self, name):
+        self.rand_pos(name)
+        self.rand_dir(name)
+        self.rand_active(name)
+        self.rand_specular(name)
+        self.rand_ambient(name)
+        self.rand_diffuse(name)
+        #self.rand_castshadow(name)
+
+    def rand_pos(self, name):
+        value = [self.random_state.randint(-1, 2) * self.random_state.uniform(), self.random_state.randint(-1, 2) * self.random_state.uniform(), self.random_state.randint(3, 7)]
+        self.set_pos(name, value)
+
+    def rand_dir(self, name):
+        value = value = [self.random_state.randint(-1, 2) * self.random_state.uniform(), self.random_state.randint(-1, 2) * self.random_state.uniform(), self.random_state.randint(-1, 0) * self.random_state.uniform()]
+        self.set_dir(name, value)
+
+    def rand_active(self, name):
+        value = np.round(0.6*self.random_state.uniform())
+        self.set_active(name, value)
+
+    def rand_specular(self, name):
+        value = [0.1 + 0.9 * self.random_state.uniform(), 0.1 + 0.9 * self.random_state.uniform(), 0.1 + 0.9 * self.random_state.uniform()]
+        #value = [0.9 * self.random_state.uniform(), 0.9 * self.random_state.uniform(), 0.9 * self.random_state.uniform()]
+        self.set_specular(name, value)
+
+    def rand_ambient(self, name):
+        value = [0.1 + 0.9 * self.random_state.uniform(), 0.1 + 0.9 * self.random_state.uniform(), 0.1 + 0.9 * self.random_state.uniform()]
+        #value = [0.9 * self.random_state.uniform(), 0.9 * self.random_state.uniform(), 0.9 * self.random_state.uniform()]
+        self.set_ambient(name, value)
+
+    def rand_diffuse(self, name):
+        value = [0.1 + 0.9 * self.random_state.uniform(), 0.1 + 0.9 * self.random_state.uniform(), 0.1 + 0.9 * self.random_state.uniform()]
+        #value = [0.9 * self.random_state.uniform(), 0.9 * self.random_state.uniform(), 0.9 * self.random_state.uniform()]
+        self.set_diffuse(name, value)
+
+    def rand_castshadow(self, name):
+        value = np.round(0.7*self.random_state.uniform())
+        self.set_castshadow(name, value)
+
     def get_lightid(self, name):
         return self.model.light_name2id(name)
 
@@ -101,6 +140,10 @@ class CameraModder(BaseModder):
         assert camid > -1, "Unknown camera %s" % name
         self.model.cam_fovy[camid] = value
 
+    def rand_fovy(self, name):
+        value = self.random_state.choice((43, 44, 45, 46, 47), 1)
+        self.set_fovy(name, value)
+
     def get_quat(self, name):
         camid = self.get_camid(name)
         assert camid > -1, "Unknown camera %s" % name
@@ -109,7 +152,7 @@ class CameraModder(BaseModder):
     def set_quat(self, name, value):
         value = list(value)
         assert len(value) == 4, (
-            "Expectd value of length 3, instead got %s" % value)
+            "Expectd value of length 4, instead got %s" % value)
         camid = self.get_camid(name)
         assert camid > -1, "Unknown camera %s" % name
         self.model.cam_quat[camid] = value
@@ -119,6 +162,11 @@ class CameraModder(BaseModder):
         assert camid > -1, "Unknown camera %s" % name
         return self.model.cam_pos[camid]
 
+    def rand_all(self, name):
+        self.rand_fovy(name)
+        self.rand_pos(name)
+        self.rand_quat(name, factor)
+
     def set_pos(self, name, value):
         value = list(value)
         assert len(value) == 3, (
@@ -126,6 +174,31 @@ class CameraModder(BaseModder):
         camid = self.get_camid(name)
         assert camid > -1
         self.model.cam_pos[camid] = value
+
+    def rand_pos(self, name):
+        original_pos = np.array([1.95, 0.0, 1.5])
+        delta = np.array([0.1 * self.random_state.uniform(), 0.1 * self.random_state.uniform(), 0.1 * self.random_state.uniform()])
+        value = original_pos + delta
+        self.set_pos(name, value)
+
+    def euler_to_quaternion(self, roll, pitch, yaw):
+
+        qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+        qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
+        qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
+        qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+
+        return [qw, qx, qy, qz]
+
+    def rand_quat(self, name, factor=[0.05, 0.05, 0.05]):
+        original_quat = np.array([0.65560634, 0.26545465 , 0.26566613, 0.65508447])
+        original_euler = np.array([0.0, 0.77, 1.57])
+        #delta = np.array([self.random_state.randint(-1, 2) * 0.1 * self.random_state.uniform(),self.random_state.randint(-1, 2)*  0.1 * self.random_state.uniform(), self.random_state.randint(-1, 2) * 0.1 * self.random_state.uniform(), self.random_state.randint(-1, 2) * 0.1 * self.random_state.uniform()])
+        delta = np.array([self.random_state.randint(-1, 2) *factor[1]* self.random_state.uniform(), self.random_state.randint(-1, 2) *factor[0]* self.random_state.uniform(), self.random_state.randint(-1, 2) *factor[2]* self.random_state.uniform()]) 
+        value_euler = original_euler + delta
+        
+        value_quat = self.euler_to_quaternion(value_euler[1], value_euler[0], value_euler[2])
+        self.set_quat(name, value_quat)
 
     def get_camid(self, name):
         return self.model.camera_name2id(name)
@@ -231,6 +304,11 @@ class TextureModder(BaseModder):
                 if self.model.tex_type[i] == skybox_textype:
                     tex_id = i
             assert tex_id >= 0, "Model has no skybox"
+        elif name == 'skin':
+            mat_id = self.model.skin_matid[0]
+            assert mat_id >= 0, "Skin has no assigned material"
+            tex_id = self.model.mat_texid[mat_id]
+            assert tex_id >= 0, "Material has no assigned texture"
         else:
             geom_id = self.model.geom_name2id(name)
             mat_id = self.model.geom_matid[geom_id]
@@ -245,6 +323,8 @@ class TextureModder(BaseModder):
     def get_checker_matrices(self, name):
         if name == 'skybox':
             return self._skybox_checker_mat
+        elif name == 'skin':
+            return self._skin_checker_mat
         else:
             geom_id = self.model.geom_name2id(name)
             return self._geom_checker_mats[geom_id]
@@ -312,6 +392,7 @@ class TextureModder(BaseModder):
         return bitmap
 
     def randomize(self):
+        print("Tecture randomization")
         for name in self.sim.model.geom_names:
             self.rand_all(name)
 
@@ -410,7 +491,16 @@ class TextureModder(BaseModder):
             h, w = texture.bitmap.shape[:2]
             self._geom_checker_mats.append(self._make_checker_matrices(h, w))
 
-        # add skybox
+        #add skin
+        skin_tex_id = self.model.mat_texid[self.model.skin_matid[0]]
+        if skin_tex_id >= 0:
+            texture = self.textures[skin_tex_id]
+            h, w = texture.bitmap.shape[:2]
+            self._skin_checker_mat = self._make_checker_matrices(h, w)
+        else:
+            self._skin_checker_mat = None
+
+        #add skybox
         skybox_tex_id = -1
         for tex_id in range(self.model.ntex):
             skybox_textype = 2
@@ -433,6 +523,7 @@ class TextureModder(BaseModder):
 
 # From mjtTexture
 MJT_TEXTURE_ENUM = ['2d', 'cube', 'skybox']
+#skin tex_type is 'cube'
 
 
 class Texture():
